@@ -1,0 +1,4 @@
+原论文题名：《Quantifying small molecule phenotypic effects using mitochondrial morpho-functional fingerprinting and machine learning》。地址[在这里](https://www.nature.com/articles/srep08035)。
+
+最近因为准备到生科那边做一点工作，所以先帮生物科学的老师那边做点事。
+生科学院的文铁桥教授准备组一个大学生创新项目（我本人不参加），然后想做细胞器的相关内容，我主要是负责其中机器学习的内容，所以

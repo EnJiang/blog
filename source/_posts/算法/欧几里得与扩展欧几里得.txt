@@ -1,0 +1,324 @@
+---
+date: 2018-01-03 15:13
+status: public
+title: 欧几里得与扩展欧几里得
+---
+
+```
+18冬数论作业-15121709
+```
+
+# 欧几里得算法简介与实现 
+欧几里得算法，又称辗转相除法，是一种古老的求最大公约数（greatest common division，GCD）的算法。辗转相除法首次出现于欧几里得的《几何原本》中，而在中国则可以追溯至东汉出现的《九章算术》。
+
+欧几里得算法基于如下的原理：一个正整数a和b，设a<b，GCD(a, b)为a和b的最大公约数，则GCD(a, b) = GCD(a, b - a)。
+由此可以写出一个基于递归的朴素欧几里得算法实现：
+```cpp
+int __gcd(int a, int b)
+{
+  if(a == b){
+    return a;
+  }
+  if(a > b){
+    swap(a, b);
+  }
+  return __gcd(a, b - a);
+}
+```
+每次迭代都会使其中某一个参数变小，而且保持其为都为正。所以要么终止于a == b != 1，要么终止于a == b == 1，不会越界。
+
+优化1：注意到，若b > 2a，进行一次递归之后，实际上又是一模一样又做一次b - a。实际上，写成b > na，return __gcd(a, b - a)这一句造成的结果就是反复使b减去a，减掉n-1次，直到第二个参数小于第一个参数为止。这个过程我们可以一步做完，即用b%a来得到结果。
+```cpp
+int __gcd(int a, int b)
+{
+  if(a > b){
+    swap(a, b);
+  }
+  if(b % a == 0){  //优化位置
+    return a;
+  }
+  return __gcd(a, b % a); //优化位置
+}
+```
+同上，最坏情况下终止于a == b == 1。
+
+优化2：注意到，b % a < a，也就是说，在这一写法下，每一次递归，a > b这个条件都必然被触发（因为从上一层传下来的是a和b%a）。可以较为清晰地将这一递归写法改成非递归的。
+```cpp
+int __gcd(int a, int b)
+{
+  if(a > b){
+    swap(a ,b);
+  }
+  while(b % a != 0){
+      b = b % a;
+      swap(a, b);
+  }
+  return a;
+}
+```
+同上，最坏情况下终止于a == b == 1。
+当然，考虑a > b时，b % a = b，再执行swap(a, b)，实际上和第一个条件是等价的，于是可以写成
+```cpp
+int __gcd(int a, int b)
+{
+  while(b % a != 0){
+      b = b % a;
+      swap(a, b);
+  }
+  return a;
+}
+```
+
+优化三：也可以用一个除子t来表示b % a的结果，接下来，执行a = t; b = a;直到t为0，逻辑上其实是等价的。比如algorithm里面自带的__gcd方法：
+```cpp
+  template<typename _EuclideanRingElement>
+    _EuclideanRingElement
+    __gcd(_EuclideanRingElement __m, _EuclideanRingElement __n)
+    {
+      while (__n != 0)
+	{
+	  _EuclideanRingElement __t = __m % __n;
+	  __m = __n;
+	  __n = __t;
+	}
+      return __m;
+    }
+```
+或者还有更简短的写法：
+``` cpp
+int gcd(int a, int b){
+    return !b ? gcd(b, a % b) : a;
+}
+```
+# 辗转相除法的证明
+回到一开始我们的说明：
+欧几里得算法基于如下的原理：一个正整数a和b，设a<b，GCD(a, b)为a和b的最大公约数，则GCD(a, b) = GCD(a, b - a)。
+我们设a和b的最大公因数为d，则可以写出：a=sd，b=qd。
+其中，由于d是a和b的**最大**公约数，所以s和q应该**互质**。即GCD(s, q) == 1。可以简单看出，这个条件是充要的。
+而b - a = qd - sd = (q - s)d
+若我们证明，GCD(q, q - s) == 1，则可知d也是b(qd)和b - a(qd - sd)的最大公约数了。
+于是证明目标转换为：
+已知s和q互质（q>s），求证q和q - s必然互质。
+设q和q-s不互质，其有最大公约数m>1，则令q=um，q-s=lm，两式相减得到s=(u - l)m，则知m是q和s的一个约数且m>1，与原假设矛盾，故q和q-s不可能互质。
+得证。
+当然，也可以直接证明GCD(a, b) = GCD(a, b % a)。方法类似。
+
+# 扩展欧几里得法
+在数学的世界里，有这样一类方程（组），他们的方程数目比未知数数目少，因此不能求出一个确定解，叫做不定方程。但是不定方程问题往往加上一些限制条件，比如求出所有可能整数解，问这个不定方程组有没有解，等等，那些求一个不定方程组所有整数解的问题，由于首先被希腊数学家丢番图研究，也叫丢番图方程。
+一个简单的丢番图方程(叫做裴蜀等式或贝祖等式)：
+```mathjax
+ax+by = m
+```
+早在17世纪这一问题就已经被[证明](https://zh.wikipedia.org/wiki/%E8%B2%9D%E7%A5%96%E7%AD%89%E5%BC%8F#.E6.95.B4.E6.95.B0.E4.B8.AD.E7.9A.84.E8.A3.B4.E8.9C.80.E5.AE.9A.E7.90.86)：设d是a、b的最大公约数，方程有整数解(x,y) 当且仅当m 是d 的整数倍。裴蜀等式有解时必然有无穷多个解。m=1时，方程有解当且仅当a、b互质。
+方程有解时，解的集合是
+
+![](~/09-37-17.jpg)
+其中$x_0, y_0$是$ax + by = d$ 的一个解。这个解我们可以用辗转相除法求得。
+这里，用欧几里得法求方程$ax+by=d$的这一种方法，叫做扩展欧几里得法。
+首先，令a>b，在欧几里得法中我们已经知道GCD(a, b) = GCD(a, a % b)。
+设ax+by=d的解为$x_1, y_1$，即
+```mathjax
+ax_1+by_1=d
+```
+
+观察方程
+```mathjax
+bx+(a \% b)y = CGD(a, a \% b) = GCD(a, b)  = d
+```
+将a%b写成a-(a/b)*b，其中a/b取整，令其解为$x_2,y_2$方程变为
+```mathjax
+ay_2 + b(x_2 - (a / b) y_2) = d
+```
+与和$x_1,y_1$有关的那个方程比较一下可以得到：
+```mathjax
+x_1 = y_2 \\
+y_1 = x_2 - (a / b) y_2
+```
+这样我们就到了两组解的关系，然后我们可以从这里递归，不断的建立方程组。观察递归过程中后一组方程的参数b和a%b，前一组方程的参数a和b，和我们上面讨论的欧几里得法其实是非常相像的，我们来看看那时候的代码：
+```cpp
+int __gcd(int a, int b)
+{
+  if(a > b){
+    swap(a, b);
+  }
+  if(b % a == 0){
+    return a;
+  }
+  return __gcd(a, b % a);
+}
+```
+由于上面设的是b > a，这里设的是a > b，我们先做一下小改动
+```cpp
+int __gcd(int a, int b)
+{
+  if(a < b){
+    swap(a, b);
+  }
+  if(a % b == 0){
+    return b;
+  }
+  return __gcd(b, a % b);
+}
+```
+我们已经分析过，这个递归过程中a和b两个参数都不断的减小，但是又总是正数，所以最差也就终止在a==1，b==1，总而言之必然会触发a % b这个条件终止递归。
+如果我们在这个函数的基础上来实现欧几里得函数，考虑a % b == 0，那么设a == mb，方程变成了(mx+y)b=d，还是不太好求，不如我们更进一步，再递归一次：下一次递归，b这个参数变成0了，由于GCD(a, 0) = a，发现a * 1 + b * 0 = gcd(a, b)，即x = 1，y = 0。
+参考这个函数和上述分析，我们试着定义一下扩展欧几里得函数，其传入四个参数：a,b以及两个整数x1,y1的引用，代表方程的特解。为了精简问题，不带返回值。
+```cpp
+void __exgcd(int a, int b, int& x1, int& y1)
+{
+  int changeFlag = 0;
+  if(a < b){
+    swap(a, b);
+    changeFlag = 1;
+  }
+  if(b == 0){
+    x1 = 1;
+    y1 = 0;
+  } else {
+    int x2, y2;
+    __exgcd(b, a % b, x2, y2);
+    x1 = y2;
+    y1 = x2 - (a / b) * y2;
+    if(changeFlag){
+        swap(x1, y1);
+    }
+  }
+}
+```
+这里我还用了一个changeFlag来指示要不要交换两个数，所以整个代码看上去不是很优雅……不过其实上面说到过了，取余就有这个好处，如果a<b，a % b = a，那么__exgcd(b, a, x2, y2)就完成了。并且下面那两行
+```cpp
+    x1 = y2;
+    y1 = x2 - (a / b) * y2;
+```
+在这个语境下正好起到了swap(x1, y1)的作用，因为a < b的话a/b=0。于是删掉这段很不美的片段：
+```cpp
+void __exgcd(int a, int b, int& x1, int& y1)
+{
+  if(b == 0){
+    x1 = 1;
+    y1 = 0;
+  } else {
+    int x2, y2;
+    __exgcd(b, a % b, x2, y2);
+    x1 = y2;
+    y1 = x2 - (a / b) * y2;
+  }
+}
+```
+也看到有更短的写法，不过可读性稍微差一点：
+```cpp
+void __extgcd(int a, int b,int &x, int &y){
+    if(b != 0){
+        d = extgcd(b, a % b, y, x);
+        y -= (a / b) * x;
+    }
+    else  x = 1, y = 0;
+}
+```
+另外，这个形式和gcd很像，实际上可以用来顺便把gcd也求了。
+```cpp
+int extgcd(int a, int b,int &x, int &y){
+    int d = a;
+    if(b != 0){
+        d = extgcd(b, a % b, y, x);
+        y -= (a / b) * x;
+    }
+    else  x = 1, y = 0;
+    return d;
+}
+```
+证明从略，和上面的gcd比较着看看就行。
+# 模板总结
+辗转相除法：
+直接在algorithm库里面调用__gcd(a, b);
+扩展欧几里得法：
+```cpp
+int extgcd(int a, int b,int &x, int &y){
+    int d = a;
+    if(b != 0){
+        d = extgcd(b, a % b, y, x);
+        y -= (a / b) * x;
+    }
+    else  x = 1, y = 0;
+    return d;
+}
+```
+# 例题
+[shuoj381](http://acmoj.shu.edu.cn/problem/381/)青蛙的约会
+有个很搞的小细节，就是如果出现了减号ax-by=d，那就要先变成ax+by=d，然后对y取反。
+```cpp
+#include <iostream>
+#include <algorithm>
+#include <math.h>
+
+using namespace std;
+
+typedef long long ll;
+
+ll gcdEx(ll a, ll b, ll *x, ll *y)
+ {
+     if(b==0)
+     {
+         *x = 1,*y = 0;
+         return a;
+     }
+     else
+     {
+         ll r = gcdEx(b, a%b, x, y);
+         ll t = *x;
+         *x = *y;
+         *y = t - a/b * *y;
+         return r;
+     }
+ }
+
+int main()
+{
+    ll x, y, m, n, L, v, t, u, w, d, n1, k1, k2;
+    double left, right;
+    while(cin >> x >> y >> m >> n >> L){
+        if(x == y){
+            cout << 0 << endl;
+            continue;
+        } else if(m == n){
+            cout << "Impossible" << endl;
+            continue;
+        }
+
+/*
+(m - n)t + uL = y-x
+   vt    + Lu =  w
+已知v,L,w求t, u的一组最小正整数解
+*/
+
+        v = m -n;
+        w = y - x;
+        d = __gcd(abs(v), L);
+
+        if(w % d != 0){
+            cout << "Impossible" << endl;
+            continue;
+        }
+
+        gcdEx(abs(v), L, &t, &u);
+
+        if(v < 0){
+            t *= -1;
+        }
+
+        t *= w / d;
+        u *= w / d;
+
+        k1 = L / d;
+        k2 = -1 * v / d;
+
+        left = -1.0 * t / k1;
+        right = 1.0 * u / k2;
+        n1 = left > 0 ? (ll)(left + 1) : (ll)(left);
+        t += k1 * n1;
+        cout << t << endl;
+
+    }
+    return 0;
+}
+```
